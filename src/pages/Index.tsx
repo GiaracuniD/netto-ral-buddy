@@ -1,12 +1,113 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { calculateSalary, type SalaryBreakdown } from "@/lib/salary-calculator";
+import { ResultCard } from "@/components/ResultCard";
+import { BreakdownTable } from "@/components/BreakdownTable";
+import { Calculator } from "lucide-react";
 
 const Index = () => {
+  const [ralInput, setRalInput] = useState("");
+  const [result, setResult] = useState<SalaryBreakdown | null>(null);
+  const [key, setKey] = useState(0);
+
+  const handleCalculate = () => {
+    const ral = parseFloat(ralInput.replace(/\./g, "").replace(",", "."));
+    if (!ral || ral <= 0) return;
+    setKey((k) => k + 1);
+    setResult(calculateSalary(ral));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleCalculate();
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
+            <Calculator className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-foreground tracking-tight">
+              JetHR <span className="text-muted-foreground font-medium">| Payroll Simulator</span>
+            </h1>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Hero */}
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-2">
+            Calcola il tuo <span className="text-gradient">stipendio netto</span>
+          </h2>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Inserisci la tua RAL per scoprire quanto guadagnerai ogni mese, al netto di tasse e contributi.
+          </p>
+        </div>
+
+        {/* Input Section */}
+        <div className="bg-card rounded-xl border border-border shadow-card p-6 mb-8">
+          <label htmlFor="ral-input" className="block text-sm font-medium text-foreground mb-2">
+            Retribuzione Annua Lorda (RAL)
+          </label>
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">€</span>
+              <input
+                id="ral-input"
+                type="text"
+                inputMode="numeric"
+                placeholder="es. 35000"
+                value={ralInput}
+                onChange={(e) => setRalInput(e.target.value.replace(/[^0-9.,]/g, ""))}
+                onKeyDown={handleKeyDown}
+                className="w-full h-12 pl-8 pr-4 rounded-lg border border-input bg-background text-foreground text-lg font-medium placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
+              />
+            </div>
+            <button
+              onClick={handleCalculate}
+              className="h-12 px-6 rounded-lg gradient-primary text-primary-foreground font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all whitespace-nowrap"
+            >
+              Calcola
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Dipendente a tempo indeterminato · Milano · 13 mensilità
+          </p>
+        </div>
+
+        {/* Results */}
+        {result && (
+          <div key={key} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ResultCard
+                label="Netto Mensile"
+                value={result.nettoMensile}
+                sublabel="su 13 mensilità"
+                variant="primary"
+                delay={0}
+              />
+              <ResultCard
+                label="Netto Annuale"
+                value={result.nettoAnnuale}
+                sublabel="al netto di tasse e contributi"
+                delay={100}
+              />
+            </div>
+            <BreakdownTable breakdown={result} />
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-6 mt-auto">
+        <p className="text-center text-xs text-muted-foreground">
+          Simulazione a scopo indicativo · I valori reali possono variare
+        </p>
+      </footer>
     </div>
   );
 };
