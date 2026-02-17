@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { calculateSalary, type SalaryBreakdown } from "@/lib/salary-calculator";
+import { DEFAULT_PROFILE, type UserProfile } from "@/lib/payroll-data";
 import { ResultCard } from "@/components/ResultCard";
 import { BreakdownTable } from "@/components/BreakdownTable";
+import { UserSettingsForm } from "@/components/UserSettingsForm";
 import { Calculator } from "lucide-react";
 
 const Index = () => {
+  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [ralInput, setRalInput] = useState("");
   const [result, setResult] = useState<SalaryBreakdown | null>(null);
   const [key, setKey] = useState(0);
@@ -13,7 +16,7 @@ const Index = () => {
     const ral = parseFloat(ralInput.replace(/\./g, "").replace(",", "."));
     if (!ral || ral <= 0) return;
     setKey((k) => k + 1);
-    setResult(calculateSalary(ral));
+    setResult(calculateSalary({ ...profile, ral }));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -37,19 +40,22 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
         {/* Hero */}
-        <div className="mb-8">
+        <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-2">
             Calcola il tuo <span className="text-gradient">stipendio netto</span>
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Inserisci la tua RAL per scoprire quanto guadagnerai ogni mese, al netto di tasse e contributi.
+            Configura il tuo profilo lavorativo e scopri quanto guadagnerai ogni mese, con calcolo IRPEF reale e detrazioni.
           </p>
         </div>
 
-        {/* Input Section */}
-        <div className="bg-card rounded-xl border border-border shadow-card p-6 mb-8">
+        {/* User Settings */}
+        <UserSettingsForm profile={profile} onChange={setProfile} />
+
+        {/* RAL Input */}
+        <div className="bg-card rounded-xl border border-border shadow-card p-6">
           <label htmlFor="ral-input" className="block text-sm font-medium text-foreground mb-2">
             Retribuzione Annua Lorda (RAL)
           </label>
@@ -74,9 +80,6 @@ const Index = () => {
               Calcola
             </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Dipendente a tempo indeterminato · Milano · 13 mensilità
-          </p>
         </div>
 
         {/* Results */}
@@ -86,14 +89,14 @@ const Index = () => {
               <ResultCard
                 label="Netto Mensile"
                 value={result.nettoMensile}
-                sublabel="su 13 mensilità"
+                sublabel={`su ${result.mensilita} mensilità`}
                 variant="primary"
                 delay={0}
               />
               <ResultCard
                 label="Netto Annuale"
                 value={result.nettoAnnuale}
-                sublabel="al netto di tasse e contributi"
+                sublabel={`aliquota effettiva ${result.aliquotaEffettiva.toFixed(1)}%`}
                 delay={100}
               />
             </div>
@@ -105,7 +108,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border py-6 mt-auto">
         <p className="text-center text-xs text-muted-foreground">
-          Simulazione a scopo indicativo · I valori reali possono variare
+          Simulazione a scopo indicativo · Scaglioni IRPEF 2024 · I valori reali possono variare
         </p>
       </footer>
     </div>
