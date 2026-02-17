@@ -85,7 +85,7 @@ const Index = () => {
         {/* Results */}
         {result && (
           <div key={key} className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <ResultCard
                 label="Netto Mensile"
                 value={result.nettoMensile}
@@ -98,6 +98,12 @@ const Index = () => {
                 value={result.nettoAnnuale}
                 sublabel={`aliquota effettiva ${result.aliquotaEffettiva.toFixed(1)}%`}
                 delay={100}
+              />
+              <ResultCard
+                label="Costo Azienda"
+                value={result.costoAzienda}
+                sublabel="RAL + 30% oneri stimati"
+                delay={200}
               />
             </div>
             <BreakdownTable breakdown={result} />

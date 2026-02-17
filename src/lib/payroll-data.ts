@@ -142,13 +142,37 @@ export function getDetrazioniLavoro(redditoComplessivo: number): number {
   return 0;
 }
 
-// ── Bonus 100€ (ex Renzi) ──
-export function getBonus100(redditoComplessivo: number): number {
-  if (redditoComplessivo <= 15000) {
-    return 1200; // €100/mese x 12
+// ── Bonus 100€ (Trattamento Integrativo) ──
+// Spetta se reddito 8.500–28.000 e imposta lorda > detrazioni
+export function getTrattamentoIntegrativo(
+  redditoComplessivo: number,
+  irpefLorda: number,
+  detrazioniLavoro: number
+): number {
+  if (redditoComplessivo >= 8500 && redditoComplessivo <= 28000) {
+    if (irpefLorda > detrazioniLavoro) {
+      return 1200;
+    }
   }
   return 0;
 }
+
+// ── Taglio Cuneo Fiscale 2024 ──
+// Esonero contributivo sulla quota INPS dipendente
+export function getEsoneroContributivo(
+  ralMensile: number,
+  inpsRateBase: number
+): { rateEffettiva: number; esoneroPunti: number } {
+  if (ralMensile <= 1923) {
+    return { rateEffettiva: Math.max(inpsRateBase - 0.07, 0.0219), esoneroPunti: 0.07 };
+  } else if (ralMensile <= 2692) {
+    return { rateEffettiva: Math.max(inpsRateBase - 0.06, 0.0319), esoneroPunti: 0.06 };
+  }
+  return { rateEffettiva: inpsRateBase, esoneroPunti: 0 };
+}
+
+// ── Detrazioni figli a carico (forfettarie) ──
+export const DETRAZIONE_FIGLI_MENSILE = 80; // €/mese forfettario
 
 // ── User Profile ──
 export interface UserProfile {
@@ -157,6 +181,7 @@ export interface UserProfile {
   region: Region;
   city: string;
   ral: number;
+  figliACarico: boolean;
 }
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -165,4 +190,5 @@ export const DEFAULT_PROFILE: UserProfile = {
   region: "lombardia",
   city: "milano",
   ral: 30000,
+  figliACarico: false,
 };
