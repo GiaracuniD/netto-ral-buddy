@@ -1,16 +1,15 @@
-import { useState } from "react";
 import {
   CONTRACT_TYPES,
   CCNL_OPTIONS,
   REGIONAL_TAX_RATES,
   getCitiesByRegion,
-  DEFAULT_PROFILE,
   type UserProfile,
   type ContractType,
   type CCNLType,
   type Region,
 } from "@/lib/payroll-data";
-import { Briefcase, MapPin, FileText, Building2 } from "lucide-react";
+import { Briefcase, MapPin, FileText, Building2, Users } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface UserSettingsFormProps {
   profile: UserProfile;
@@ -26,7 +25,6 @@ export function UserSettingsForm({ profile, onChange }: UserSettingsFormProps) {
 
   const update = (partial: Partial<UserProfile>) => {
     const updated = { ...profile, ...partial };
-    // Reset city when region changes
     if (partial.region && partial.region !== profile.region) {
       const regionCities = getCitiesByRegion(partial.region);
       const hasCity = regionCities.some((c) => c.value === profile.city);
@@ -120,9 +118,21 @@ export function UserSettingsForm({ profile, onChange }: UserSettingsFormProps) {
         </div>
       </div>
 
+      {/* Figli a carico toggle */}
+      <div className="flex items-center justify-between pt-2 border-t border-border">
+        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+          <Users className="h-4 w-4 text-primary" />
+          Figli a carico (sotto i 21 anni)
+        </label>
+        <Switch
+          checked={profile.figliACarico}
+          onCheckedChange={(checked) => update({ figliACarico: checked })}
+        />
+      </div>
+
       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground pt-1">
         <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md">
-          INPS: {(profile.contractType === "apprendistato" ? 5.84 : 9.19)}%
+          INPS base: {(profile.contractType === "apprendistato" ? 5.84 : 9.19)}%
         </span>
         <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md">
           {CCNL_OPTIONS.find((c) => c.value === profile.ccnl)?.mensilita} mensilità
@@ -130,6 +140,11 @@ export function UserSettingsForm({ profile, onChange }: UserSettingsFormProps) {
         <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md">
           Add. Reg. {(REGIONAL_TAX_RATES[profile.region].rate * 100).toFixed(2)}%
         </span>
+        {profile.figliACarico && (
+          <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md">
+            Detr. figli: €80/mese
+          </span>
+        )}
       </div>
     </div>
   );

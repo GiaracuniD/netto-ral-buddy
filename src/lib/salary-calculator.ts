@@ -5,32 +5,41 @@ import {
   CITIES,
   CCNL_OPTIONS,
   getDetrazioniLavoro,
-  getBonus100,
+  getTrattamentoIntegrativo,
+  getEsoneroContributivo,
+  DETRAZIONE_FIGLI_MENSILE,
   type UserProfile,
   type Region,
 } from "./payroll-data";
 
 export interface SalaryBreakdown {
   ral: number;
-  inps: number;
+  inpsBase: number;
+  esoneroContributivo: number;
+  inpsEffettiva: number;
   imponibileIrpef: number;
   irpefLorda: number;
   detrazioniLavoro: number;
+  detrazioniFigli: number;
   irpefNetta: number;
   addizionaleRegionale: number;
   addizionaleComunale: number;
-  bonus100: number;
+  trattamentoIntegrativo: number;
   nettoAnnuale: number;
   nettoMensile: number;
+  costoAzienda: number;
   mensilita: number;
   aliquotaEffettiva: number;
   regionLabel: string;
   cityLabel: string;
   ccnlLabel: string;
   contractLabel: string;
-  inpsRate: number;
+  inpsRateBase: number;
+  inpsRateEffettiva: number;
+  esoneroPunti: number;
   regionalRate: number;
   municipalRate: number;
+  figliACarico: boolean;
 }
 
 function calculateIrpefLorda(imponibile: number): number {
@@ -44,21 +53,29 @@ function calculateIrpefLorda(imponibile: number): number {
 }
 
 export function calculateSalary(profile: UserProfile): SalaryBreakdown {
-  const { ral, contractType, ccnl, region, city } = profile;
+  const { ral, contractType, ccnl, region, city, figliACarico } = profile;
 
-  // INPS
-  const inpsRate = INPS_RATES[contractType];
-  const inps = ral * inpsRate;
+  const ccnlData = CCNL_OPTIONS.find((c) => c.value === ccnl)!;
+  const mensilita = ccnlData.mensilita;
+
+  // Taglio cuneo fiscale 2024
+  const inpsRateBase = INPS_RATES[contractType];
+  const ralMensile = ral / mensilita;
+  const { rateEffettiva: inpsRateEffettiva, esoneroPunti } = getEsoneroContributivo(ralMensile, inpsRateBase);
+
+  const inpsBase = ral * inpsRateBase;
+  const inpsEffettiva = ral * inpsRateEffettiva;
+  const esoneroContributivo = inpsBase - inpsEffettiva;
 
   // Imponibile IRPEF
-  const imponibileIrpef = ral - inps;
+  const imponibileIrpef = ral - inpsEffettiva;
 
-  // IRPEF Lorda
+  // IRPEF
   const irpefLorda = calculateIrpefLorda(imponibileIrpef);
-
-  // Detrazioni
   const detrazioniLavoro = getDetrazioniLavoro(imponibileIrpef);
-  const irpefNetta = Math.max(0, irpefLorda - detrazioniLavoro);
+  const detrazioniFigli = figliACarico ? DETRAZIONE_FIGLI_MENSILE * 12 : 0;
+  const totalDetrazioni = detrazioniLavoro + detrazioniFigli;
+  const irpefNetta = Math.max(0, irpefLorda - totalDetrazioni);
 
   // Addizionali
   const regionData = REGIONAL_TAX_RATES[region];
@@ -69,16 +86,15 @@ export function calculateSalary(profile: UserProfile): SalaryBreakdown {
   const municipalRate = cityData.rate;
   const addizionaleComunale = imponibileIrpef * municipalRate;
 
-  // Bonus
-  const bonus100 = getBonus100(imponibileIrpef);
+  // Trattamento integrativo
+  const trattamentoIntegrativo = getTrattamentoIntegrativo(imponibileIrpef, irpefLorda, detrazioniLavoro);
 
   // Netto
-  const nettoAnnuale = imponibileIrpef - irpefNetta - addizionaleRegionale - addizionaleComunale + bonus100;
-
-  // Mensilità from CCNL
-  const ccnlData = CCNL_OPTIONS.find((c) => c.value === ccnl)!;
-  const mensilita = ccnlData.mensilita;
+  const nettoAnnuale = imponibileIrpef - irpefNetta - addizionaleRegionale - addizionaleComunale + trattamentoIntegrativo;
   const nettoMensile = nettoAnnuale / mensilita;
+
+  // Costo azienda (RAL + ~30% oneri)
+  const costoAzienda = ral * 1.30;
 
   const aliquotaEffettiva = ((ral - nettoAnnuale) / ral) * 100;
 
@@ -86,25 +102,32 @@ export function calculateSalary(profile: UserProfile): SalaryBreakdown {
 
   return {
     ral: round(ral),
-    inps: round(inps),
+    inpsBase: round(inpsBase),
+    esoneroContributivo: round(esoneroContributivo),
+    inpsEffettiva: round(inpsEffettiva),
     imponibileIrpef: round(imponibileIrpef),
     irpefLorda: round(irpefLorda),
     detrazioniLavoro: round(detrazioniLavoro),
+    detrazioniFigli: round(detrazioniFigli),
     irpefNetta: round(irpefNetta),
     addizionaleRegionale: round(addizionaleRegionale),
     addizionaleComunale: round(addizionaleComunale),
-    bonus100: round(bonus100),
+    trattamentoIntegrativo: round(trattamentoIntegrativo),
     nettoAnnuale: round(nettoAnnuale),
     nettoMensile: round(nettoMensile),
+    costoAzienda: round(costoAzienda),
     mensilita,
     aliquotaEffettiva: round(aliquotaEffettiva),
     regionLabel: regionData.label,
     cityLabel: cityData.label,
     ccnlLabel: ccnlData.label,
     contractLabel: contractType === "indeterminato" ? "Tempo Indeterminato" : contractType === "determinato" ? "Tempo Determinato" : "Apprendistato",
-    inpsRate,
+    inpsRateBase,
+    inpsRateEffettiva,
+    esoneroPunti,
     regionalRate,
     municipalRate,
+    figliACarico,
   };
 }
 
